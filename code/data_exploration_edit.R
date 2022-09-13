@@ -12,9 +12,14 @@ library(phyloseq)
 library(vegan)
 library(ggthemes)
 library(dada2)
+library(ggplot2)
 library(ggpubr)
+library(indicspecies)
 library(viridis)
 library(pairwiseAdonis)
+library(magrittr)
+library(reshape2)
+#library(devtools)
 
 sessionInfo()
 
@@ -23,6 +28,7 @@ depth <- read.csv("../output/analysis/May_data(outdated)/depth.csv")
 clustered.meta <- read.csv("../output/analysis/June_data/clustered.meta.csv", row.names = 1)
 clustered.phy <- readRDS("../output/analysis/June_data/clustered.phy.rds")
 sample_data(clustered.phy) <- clustered.meta
+clust.rich.phy <- readRDS("../output/analysis/April_data_(outdated)/clust.rich.phy.rds") #this phyloseq object has proportional read counts, and all OTUs are included 
 clust.prop.phy <- clustered.phy %>% transform_sample_counts(function(x){x*min(sample_sums(.)/sum(x))})
 
 minDepth <- 500
@@ -50,7 +56,7 @@ noncanker.2.5.phy <- (noncanker.phy %>% filter_taxa(function(x) { sum(x>0) > 0.0
                      filter_taxa(function(x) {sum(x) > 0}, TRUE))
 pop.phy <- subset_samples(clust.prop.phy, Pop=="Core"|Pop=="South"|Pop=="BC"|Pop=="Columbia")
 pop2.5.phy <- subset_samples(clust2.5.phy, Pop=="Core"|Pop=="South"|Pop=="BC"|Pop=="Columbia")
-pop.20.phy <- subset_samples(clust.20.phy, Pop=="Core"|Pop=="South"|Pop=="BC"|Pop=="Columbia")
+#pop.20.phy <- subset_samples(clust.20.phy, Pop=="Core"|Pop=="South"|Pop=="BC"|Pop=="Columbia")
 core.s.phy <- subset_samples(clust.prop.phy, Pop=="Core"|Pop=="South")
 
 saveRDS(clust.prop.phy, "../output/analysis/June_data/clust.prop.phy.rds")
@@ -85,9 +91,9 @@ accum.curve <- specaccum(clust.otu)
 plot(accum.curve, add = FALSE, random = FALSE, ci =2, ci.type = "bar", ci.col = 'red', lty = 1)
 OTU.depth.curve <- ggplot(depth, aes(x=Depth, y=OTU_count)) +
   geom_point() +
-  geom_smooth(method = "gam")
-OTU.depth.curve + xlim(0,5000) + ylim(0,40)
-
+  geom_smooth(method = "loess")
+# Posy had an issue with using this formula
+plot(OTU.depth.curve, xlim=c(0,6000), ylim=c(0,40))
 
 #### Taxonomic distribution ####
 theme_set(theme_bw())
@@ -130,13 +136,20 @@ core.s.orders <- plot_bar(core.s.phy, x="Sample", fill = "Order") +
   ylab("Proportional abundance") +
   scale_fill_viridis(begin = 0, end = 1, discrete = T, option = "C")
 
-core.tax.phy@tax_table@.Data %<>% parse_taxonomy_greengenes()
-core.tax.gen <- plot_bar(core.tax.phy, x="Sample", fill = "Genus") + 
-  geom_bar(aes(fill=Genus), stat="identity", position="stack", color="gray33") +
-  facet_wrap(~Disease, nrow = 1, scales = "free_x", drop = TRUE)+ 
-  theme(legend.position = "bottom", legend.key.size = unit(0.5, "cm"), axis.text.x = element_blank()) + 
-  ylab("Proportional abundance") +
-  scale_fill_viridis(begin = 0, end = 1, discrete = T, option = "C")
+
+# *****************  core.tax.phy not defined
+
+# core.tax.phy <- subset_taxa(clust.prop.phy, fill=='core')
+# core.tax.phy <- prune_samples(sample_sums(core.tax.phy)>0, core.tax.phy)
+# core.tax.phy@tax_table@.Data %<>% parse_taxonomy_greengenes()
+# core.tax.gen <- plot_bar(core.tax.phy, x="Sample", fill = "Genus") + 
+#   geom_bar(aes(fill=Genus), stat="identity", position="stack", color="gray33") +
+#   facet_wrap(~Disease, nrow = 1, scales = "free_x", drop = TRUE)+ 
+#   theme(legend.position = "bottom", legend.key.size = unit(0.5, "cm"), axis.text.x = element_blank()) + 
+#   ylab("Proportional abundance") +
+#   scale_fill_viridis(begin = 0, end = 1, discrete = T, option = "C")
+
+# *****************   clust.rich.phy not defined
 
 #### Calculating and testing alpha diversity ####
 otu.rich <- otu_table(clust.rich.phy)
@@ -154,6 +167,21 @@ shannon.aov <- aov(otu.shannon ~ Disease, data = otu.shannon.df)
 summary(shannon.aov)
 TukeyHSD(shannon.aov)
 
+# merge all 2.5 phyloseq objects and perform same diversity tests
+merged.2.5.phy <- merge_phyloseq(healthy.2.5.phy,noncanker.2.5.phy,canker.2.5.phy)
+merged.rich <- otu_table(merged.2.5.phy)
+meta.merged <- sample_data(merged.2.5.phy)
+merged.shannon <- diversity(merged.rich, index = "shannon", MARGIN = 1, base = exp(1))
+merged.shannon.df <- as.data.frame(merged.shannon)
+merged.shannon.df$Disease <- meta.merged$Disease
+merged.shannon.box <- ggplot(merged.shannon.df, aes(x=Disease, y=merged.shannon, fill = Disease)) +
+    geom_boxplot() +
+    ylab("Shannon diversity") +
+    theme(legend.position = "none")
+shannon.merged.aov <- aov(merged.shannon ~ Disease, data = merged.shannon.df)
+summary(shannon.merged.aov)
+TukeyHSD(shannon.merged.aov)
+
 #### Ordinations ####
 # all trees at 2.5% prevalence
 clust.bray <- clust2.5.phy %>% phyloseq::distance("bray") %>% sqrt
@@ -169,6 +197,23 @@ ggplot(clust.nmds.dat,aes(x=NMDS1,y=NMDS2,fill=Disease,label = sample_names(clus
   scale_fill_viridis(discrete = T, option = "C") +
   scale_color_viridis(discrete = T, option = "C") +
   ggthemes::theme_few()
+
+
+merged.bray <- merged.2.5.phy %>% phyloseq::distance("bray") %>% sqrt
+merged.nmds <- metaMDS(merged.bray, trymax = 200, parallel = 10)
+## no convergence, run 200 stress 0.198
+## outliers (below) removed: no convergence, run 200 stress=0.2098
+merged.nmds.dat <- scores(merged.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
+  full_join(sample_data(merged.2.5.phy) %>% data.frame %>% rownames_to_column("sampID"))
+ggplot(merged.nmds.dat,aes(x=NMDS1,y=NMDS2,fill=Disease,label = sample_names(merged.2.5.phy))) +
+  geom_point(shape=21,size=3)+
+  geom_text() +
+  stat_ellipse() +
+  scale_fill_viridis(discrete = T, option = "C") +
+  scale_color_viridis(discrete = T, option = "C") +
+  ggthemes::theme_few()
+
+
   ## outliers: myco.03.02.f, myco.06.04.d, myco.03.04.a, myco.07.02.c, myco.07.05.d, myco.04.02.e
 # removing outliers
 clust.in.phy <- subset_samples(clust2.5.phy, sample_names(clust2.5.phy) != c("myco.03.02.f", "myco.06.04.d", 
