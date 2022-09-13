@@ -1,0 +1,103 @@
+README FOR POPULUS TRICHOCARPA WOOD MYCOBIOME PROJECT
+Principal investigators: Posy Busby, Jared LeBoldus
+Initially processed by: Gillian Bergmann
+Data deposition date: 07-27-2020
+
+============================================================
+This project has the following dependencies:
+Programs:
+pheniqs https://biosails.github.io/pheniqs/
+cutadapt https://cutadapt.readthedocs.io/en/stable/
+SeqPurge https://github.com/imgag/ngs-bits
+ITSx https://microbiology.se/software/itsx/
+
+R packages:
+tidyverse (tidyr, dplyr, magrittr)
+dada2
+ShortRead
+phyloseq
+Biostrings
+foreach
+vegan
+DECHIPHER
+
+=============================================================
+FILE ORGANIZATION:
+Scripts - folder of scripts used for high-throughput sequence processing and data analysis
+  Scripts/Processing - Scripts for bioinformatic processing of the raw sequences into a phyloseq object for analysis
+  Scripts/Analysis -  Scripts for initial analyses of the phyloseq object
+Input data - folder of high-throughput raw sequence files and sample metadata
+Output data - folders of different output files
+  Output data/Processing - output files from the bioinformatic processing scripts
+  Output data/Analysis - output files from the initial analysis scripts
+  Output data/Analysis/Figures - PDFs of the figures produced in the analysis scripts
+
+=============================================================
+SCRIPT NAMES AND CONTENTS:
+trimSort.sh 
+-This script removes gene primers from both ends of paired-end read prior to denoising
+
+denoise.R
+-This script quality filters and denoises sequences with DADA2
+
+compile.R
+-This script filters out host DNA, assigns taxonomy, and compiles data into a single phyloseq object
+
+analysis_prep.R
+-This script filters out controls, contaminants, low sequencing depth samples, and singletons. Clusters sequences into OTUs at 97% similarity. 
+
+data_exploration.R
+-This script checks sequencing depth of final phyloseq object, visualizes taxonomic composition, calculates Shannon diversity and creates NMDS ordinations. The script also performs ANOVA and PerMANOVA tests, runs vector analysis against NMDS ordinations, and identifies indicator species.
+
+core_taxa.R
+-This script uses code modified from Shade and Stopnisek (2019)
+=============================================================
+FILE NAMES AND CONTENTS:
+
+wood_meta.csv
+-Tabular data sheet of sample metadata, including sample ID, controls yes/no, disease category, genotype, barcode primers and source population.
+
+sample_diseasescores.xlsx
+-Tabular data sheet of disease scores for each sampled genotype in the Boardman, Oregon garden.
+
+wood_seq.zip
+-Zipped folder of the raw sequence files for all samples. These are the input files for the denoising process in denoise.R.
+
+dadaSummary.csv
+-Tabular data sheet summarizing the remaining number of sequences for each sample after the steps of the denoising process in denoise.R.
+
+seqTab.rds
+-R object of a table containing all of the identified unique sequences. This is the output of the denoising script and the input for the compiling script. 
+
+compile.summary.csv
+-Tabular data sheet summarizing the remaining number of sequences for each sample after the steps of the compiling process in compile.R.
+
+OTU.table.csv
+-Tabular data sheet of the raw sequence counts for each OTU in each sample. This data sheet corresponds to the OTU table compiled in phy.rds.
+
+phy.rds
+-R file of the raw phyloseq object produced by the compiling process in compile.R. This object includes sample metadata, an OTU table, sequences, and a table of assigned taxonomy. This object is the input for the analysis prep script.
+
+taxonomy.table.csv
+-Tabular data sheet of fungal taxonomy assigned to each OTU in the phy.rds object. 
+
+core.OTU.table.csv
+-Tabular data sheet of rarefied sequence counts for each OTU identified as part of the core mycobiome across all samples. Output from the core_taxa.R script.
+
+core.taxonomy.table.csv
+-Tabular data sheet of the taxonomy identified for each OTU in the core mycobiome. Output from the core_taxa.R script.
+
+OTU.prop.table.csv
+-Tabular data sheet of the rarefied sequence counts for each OTU across all samples in the clust.prop.phy.rds object. Output from the data_exploration.R script.
+
+OTU.prop.taxonomy.table.csv
+-Tabular data sheet of the taxonomy assigned to each OTU included in the clust.prop.phy.rds object. Output of the data_exploration.R script.
+
+clust.prop.phy.rds
+-R file of the final phyloseq object containing all OTUs with sequence counts rarefied to proportional abundance. File includes sample metadata, an OTU table, sequences, and a table of assigned taxonomy. Output and input of the data_exploration.R script.
+
+clust2.5.phy.rds
+-R file of the final phyloseq object containing all OTUs present in more than 2.5% of samples with sequence counts rarefied to proportional abundance. File includes sample metadata, an OTU table, sequences, and a table of assigned taxonomy. Output and input of the data_exploration.R script.
+
+core.tax.phy.rds
+-R file of the final phyloseq object containing all core OTUs with sequence counts rarefied to proportional abundance. File includes sample metadata, an OTU table, sequences, and a table of assigned taxonomy. Output of the core_taxa.R script and input to the data_exploration.R script. 
