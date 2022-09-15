@@ -185,7 +185,7 @@ TukeyHSD(shannon.merged.aov)
 #### Ordinations ####
 # all trees at 2.5% prevalence
 clust.bray <- clust2.5.phy %>% phyloseq::distance("bray") %>% sqrt
-clust.nmds <- metaMDS(clust.bray, trymax = 200, parallel = 10)
+clust.nmds <- metaMDS(clust.bray, trymax = 200, parallel = 10, k=3)
   ## no convergence, run 200 stress 0.198
   ## outliers (below) removed: no convergence, run 200 stress=0.2098
 clust.nmds.dat <- scores(clust.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
@@ -199,22 +199,22 @@ ggplot(clust.nmds.dat,aes(x=NMDS1,y=NMDS2,fill=Disease,label = sample_names(clus
   ggthemes::theme_few()
 
 
-merged.bray <- merged.2.5.phy %>% phyloseq::distance("bray") %>% sqrt
-merged.nmds <- metaMDS(merged.bray, trymax = 200, parallel = 10)
-## no convergence, run 200 stress 0.198
-## outliers (below) removed: no convergence, run 200 stress=0.2098
-merged.nmds.dat <- scores(merged.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
-  full_join(sample_data(merged.2.5.phy) %>% data.frame %>% rownames_to_column("sampID"))
-ggplot(merged.nmds.dat,aes(x=NMDS1,y=NMDS2,fill=Disease,label = sample_names(merged.2.5.phy))) +
-  geom_point(shape=21,size=3)+
-  geom_text() +
-  stat_ellipse() +
-  scale_fill_viridis(discrete = T, option = "C") +
-  scale_color_viridis(discrete = T, option = "C") +
-  ggthemes::theme_few()
+# merged.bray <- merged.2.5.phy %>% phyloseq::distance("bray") %>% sqrt
+# merged.nmds <- metaMDS(merged.bray, trymax = 200, parallel = 10)
+# ## no convergence, run 200 stress 0.198
+# ## outliers (below) removed: no convergence, run 200 stress=0.2098
+# merged.nmds.dat <- scores(merged.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
+#   full_join(sample_data(merged.2.5.phy) %>% data.frame %>% rownames_to_column("sampID"))
+# ggplot(merged.nmds.dat,aes(x=NMDS1,y=NMDS2,fill=Disease,label = sample_names(merged.2.5.phy))) +
+#   geom_point(shape=21,size=3)+
+#   geom_text() +
+#   stat_ellipse() +
+#   scale_fill_viridis(discrete = T, option = "C") +
+#   scale_color_viridis(discrete = T, option = "C") +
+#   ggthemes::theme_few()
 
 
-  ## outliers: myco.03.02.f, myco.06.04.d, myco.03.04.a, myco.07.02.c, myco.07.05.d, myco.04.02.e
+## outliers: myco.03.02.f, myco.06.04.d, myco.03.04.a, myco.07.02.c, myco.07.05.d, myco.04.02.e
 # removing outliers
 clust.in.phy <- subset_samples(clust2.5.phy, sample_names(clust2.5.phy) != c("myco.03.02.f", "myco.06.04.d", 
 "myco.03.04.a")) 
@@ -226,9 +226,10 @@ clust.in.phy <- subset_samples(clust.in.phy, sample_names(clust.in.phy) != c("my
 
 # all trees with outliers removed
 clust.in.bray <- clust.in.phy %>% phyloseq::distance("bray") %>% sqrt
-clust.in.nmds <- metaMDS(clust.in.bray, trymax = 200, parallel = 10)
+clust.in.nmds <- metaMDS(clust.in.bray, trymax = 200, parallel = 10, k=3)
   ## no convergence, run 200 stress 0.207
-clust.in.dat <- scores(clust.in.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
+## incorrect number of dimensions  
+clust.in.dat <- scores(clust.in.nmds, display='sites') %>% data.frame %>% rownames_to_column("sampID") %>%
   full_join(sample_data(clust.in.phy) %>% data.frame %>% rownames_to_column("sampID"))
 ggplot(clust.in.dat,aes(x=NMDS1,y=NMDS2,fill=Disease)) + #,label = sample_names(clust.in.phy))) +
   geom_point(shape=21,size=3)+
@@ -242,7 +243,7 @@ ggplot(clust.in.dat,aes(x=NMDS1,y=NMDS2,fill=Disease)) + #,label = sample_names(
 clust.dis.bray <- clust.dis.phy %>% phyloseq::distance("bray") %>% sqrt                 
 clust.dis.nmds <- metaMDS(clust.dis.bray, trymax = 500, parallel = 10, k=3) 
   ## Converged after 90 runs (with outliers removed), final stress 0.122
-clust.dis.dat <-scores(clust.dis.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
+clust.dis.dat <-scores(clust.dis.nmds, display='sites') %>% data.frame %>% rownames_to_column("sampID") %>%
   full_join(sample_data(clust.dis.phy) %>% data.frame %>% rownames_to_column("sampID"))
 ggplot(clust.dis.dat,aes(x=NMDS1,y=NMDS2,fill=Disease)) + #, label = sample_names(clust.dis.phy)))+
   geom_point(shape=21,size=3)+
@@ -259,7 +260,7 @@ health.dis.phy <- subset_samples(clust.prop.phy, Disease==c("Canker", "Healthy")
 health.dis.bray <- health.dis.phy %>% phyloseq::distance("bray") %>% sqrt                 
 health.dis.nmds <- metaMDS(health.dis.bray, trymax = 200, parallel = 10) 
   ## no convergence, final stress .2282
-health.dis.dat <-scores(health.dis.nmds) %>% data.frame %>% rownames_to_column("sampID") %>%
+health.dis.dat <-scores(health.dis.nmds, display = 'sites') %>% data.frame %>% rownames_to_column("sampID") %>%
   full_join(sample_data(health.dis.phy) %>% data.frame %>% rownames_to_column("sampID"))
 ggplot(health.dis.dat,aes(x=NMDS1,y=NMDS2,fill=Disease)) + #, label = sample_names(health.dis.phy)))+
   geom_point(shape=21,size=3)+
